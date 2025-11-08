@@ -1,9 +1,25 @@
 import 'package:flutter/material.dart';
 import '../widgets/navigation_bar.dart';
 import '../constants/app_colors.dart';
+import '../models/account.dart';
+import '../services/account_service.dart';
 
-class CustomerAccountsScreen extends StatelessWidget {
+class CustomerAccountsScreen extends StatefulWidget {
   const CustomerAccountsScreen({super.key});
+
+  @override
+  State<CustomerAccountsScreen> createState() => _CustomerAccountsScreenState();
+}
+
+class _CustomerAccountsScreenState extends State<CustomerAccountsScreen> {
+  late Future<List<Account>> _accountsFuture;
+  final AccountService _accountService = AccountService();
+
+  @override
+  void initState() {
+    super.initState();
+    _accountsFuture = _accountService.getAccounts();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,90 +28,94 @@ class CustomerAccountsScreen extends StatelessWidget {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ---------------------------------------
-                // PAGE TITLE
-                // ---------------------------------------
-                Center(
+          child: FutureBuilder<List<Account>>(
+            future: _accountsFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                    child: CircularProgressIndicator(color: AppColors.accent));
+              } else if (snapshot.hasError) {
+                return Center(
                   child: Text(
-                    'Accounts Details',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    "Error: ${snapshot.error}",
+                    style: const TextStyle(color: AppColors.error),
                   ),
-                ),
-                const SizedBox(height: 16),
+                );
+              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(
+                  child: Text(
+                    "No accounts found.",
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                );
+              }
 
-                // ---------------------------------------
-                // HEADER ROW → LOGO
-                // ---------------------------------------
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              final accounts = snapshot.data!;
+
+              return SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: Colors.white10,
-                      child: ClipOval(
-                        child: Image.asset(
-                          'assets/images/logo_symbol.png',
-                          width: 36,
-                          height: 36,
-                          fit: BoxFit.contain,
+                    const Center(
+                      child: Text(
+                        'Accounts Details',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                    Text(
-                      "11/6/2025, 7:59 AM",
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 13,
-                      ),
+                    const SizedBox(height: 16),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: Colors.white10,
+                          child: ClipOval(
+                            child: Image.asset(
+                              'assets/images/logo_symbol.png',
+                              width: 36,
+                              height: 36,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          "${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}, "
+                              "${TimeOfDay.now().format(context)}",
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 25),
+
+                    // Dynamically list all accounts
+                    for (var acc in accounts) ...[
+                      BankAccountCard(
+                        bankName: acc.bankName,
+                        status: acc.status,
+                        statusColor: acc.status == "Active"
+                            ? Colors.green
+                            : Colors.redAccent,
+                        openingDate:
+                        "${acc.openingDate.day}/${acc.openingDate.month}/${acc.openingDate.year}",
+                        accountType: acc.accountType,
+                        branch: acc.branch,
+                        linkedServices:
+                        acc.linkedServices ? "Yes" : "No",
+                      ),
+                      const SizedBox(height: 15),
+                    ],
                   ],
                 ),
-                const SizedBox(height: 25),
-
-                // ---------------------------------------
-                // BANK ACCOUNT CARDS SECTION
-                // ---------------------------------------
-                const BankAccountCard(
-                  bankName: "State Bank of India",
-                  status: "Active",
-                  statusColor: Colors.green,
-                  openingDate: "05/04/2020",
-                  accountType: "Savings",
-                  branch: "Kopar Khairane",
-                  linkedServices: "Yes",
-                ),
-                const SizedBox(height: 15),
-
-                const BankAccountCard(
-                  bankName: "ICICI Bank",
-                  status: "Inactive",
-                  statusColor: Colors.redAccent,
-                  openingDate: "24/08/2021",
-                  accountType: "Current",
-                  branch: "Turbhe",
-                  linkedServices: "Yes",
-                ),
-                const SizedBox(height: 15),
-
-                const BankAccountCard(
-                  bankName: "Federal Bank",
-                  status: "Active",
-                  statusColor: Colors.green,
-                  openingDate: "25/07/2019",
-                  accountType: "Savings",
-                  branch: "Vashi",
-                  linkedServices: "Yes",
-                ),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),

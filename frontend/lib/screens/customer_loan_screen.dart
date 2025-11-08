@@ -1,125 +1,161 @@
 import 'package:flutter/material.dart';
 import '../widgets/navigation_bar.dart';
 import '../constants/app_colors.dart';
+import '../models/loan.dart';
+import '../services/loan_service.dart';
 
-class CustomerLoanScreen extends StatelessWidget {
+class CustomerLoanScreen extends StatefulWidget {
   const CustomerLoanScreen({super.key});
+
+  @override
+  State<CustomerLoanScreen> createState() => _CustomerLoanScreenState();
+}
+
+class _CustomerLoanScreenState extends State<CustomerLoanScreen> {
+  late Future<List<Loan>> _loansFuture;
+  final LoanService _loanService = LoanService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loansFuture = _loanService.getLoans();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.base,
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ---------------------------------------
-              // PAGE TITLE
-              // ---------------------------------------
-              Center(
-                child: Text(
-                  "Loan Details",
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+          child: FutureBuilder<List<Loan>>(
+            future: _loansFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                    child: CircularProgressIndicator(color: AppColors.accent));
+              } else if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    "Error: ${snapshot.error}",
+                    style: const TextStyle(color: AppColors.error),
                   ),
-                ),
-              ),
-              const SizedBox(height: 16),
+                );
+              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(
+                  child: Text(
+                    "No loans found.",
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                );
+              }
 
-              // ---------------------------------------
-              // HEADER ROW → LOGO + TIMESTAMP
-              // ---------------------------------------
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: Colors.white10,
-                    child: ClipOval(
-                      child: Image.asset(
-                        'assets/images/logo_symbol.png',
-                        width: 36,
-                        height: 36,
-                        fit: BoxFit.contain,
+              final loans = snapshot.data!;
+
+              final activeLoans =
+                  loans.where((l) => l.status == "Active").length;
+              final closedLoans =
+                  loans.where((l) => l.status == "Inactive").length;
+              final totalBorrowed =
+              loans.fold<double>(0, (sum, l) => sum + l.amount);
+
+              return SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Center(
+                      child: Text(
+                        "Loan Details",
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-                  Text(
-                    "11/6/2025, 7:59 AM",
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
+                    const SizedBox(height: 16),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: Colors.white10,
+                          child: ClipOval(
+                            child: Image.asset(
+                              'assets/images/logo_symbol.png',
+                              width: 36,
+                              height: 36,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          "${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}, "
+                              "${TimeOfDay.now().format(context)}",
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 25),
+                    const SizedBox(height: 25),
 
-              // ---------------------------------------
-              // LOAN SUMMARY CARDS (Quick Stats)
-              // ---------------------------------------
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  SummaryCard(title: "Active Loans", value: "1"),
-                  SummaryCard(title: "Closed Loans", value: "1"),
-                  SummaryCard(title: "Total Borrowed", value: "₹ 15,53,112"),
-                ],
-              ),
-              const SizedBox(height: 25),
+                    // Summary section
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        SummaryCard(
+                            title: "Active Loans", value: "$activeLoans"),
+                        SummaryCard(
+                            title: "Closed Loans", value: "$closedLoans"),
+                        SummaryCard(
+                            title: "Total Borrowed",
+                            value: "₹ ${totalBorrowed.toStringAsFixed(0)}"),
+                      ],
+                    ),
+                    const SizedBox(height: 25),
 
-              // ---------------------------------------
-              // INDIVIDUAL LOAN CARDS
-              // ---------------------------------------
-              const LoanCard(
-                bankName: "Punjab National Bank",
-                amount: "₹ 8,43,500",
-                issuedOn: "05/12/2023",
-                duration: "1 Year",
-                interest: "6.2%",
-                paymentHistory: "On Time",
-                penalty: "NO",
-                status: "Active",
-              ),
-              const SizedBox(height: 12),
+                    // Loan cards
+                    for (var loan in loans) ...[
+                      LoanCard(
+                        bankName: loan.bankName,
+                        amount: "₹ ${loan.amount.toStringAsFixed(0)}",
+                        issuedOn:
+                        "${loan.issuedOn.day}/${loan.issuedOn.month}/${loan.issuedOn.year}",
+                        duration: loan.duration,
+                        interest: loan.interestRate,
+                        paymentHistory: loan.paymentHistory,
+                        penalty: loan.penalty,
+                        status: loan.status,
+                      ),
+                      const SizedBox(height: 12),
+                    ],
 
-              const LoanCard(
-                bankName: "State Bank of India",
-                amount: "₹ 7,09,612",
-                issuedOn: "28/04/2024",
-                duration: "6 Months",
-                interest: "7.3%",
-                paymentHistory: "On Time",
-                penalty: "NO",
-                status: "Inactive",
-              ),
-              const SizedBox(height: 25),
+                    const SizedBox(height: 20),
 
-              // ---------------------------------------
-              // WARNING FOOTER
-              // ---------------------------------------
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.black26,
-                  borderRadius: BorderRadius.circular(8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.black26,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        "⚠️ Never share your loan or account details with anyone. "
+                            "All financial transactions are traceable and subject to audit. "
+                            "Report any suspicious requests to your bank immediately.",
+                        style: TextStyle(
+                          color: AppColors.warning,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                child: const Text(
-                  "⚠️ Never share your loan or account details with anyone. "
-                      "All financial transactions are traceable and subject to audit. "
-                      "Report any suspicious requests to your bank immediately.",
-                  style: TextStyle(
-                    color: AppColors.warning,
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
-                ),
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),
@@ -128,18 +164,12 @@ class CustomerLoanScreen extends StatelessWidget {
   }
 }
 
-// -------------------------------------------------------------
-// SUMMARY CARD (small rectangular metric widget)
-// -------------------------------------------------------------
+// Summary Card widget
 class SummaryCard extends StatelessWidget {
   final String title;
   final String value;
 
-  const SummaryCard({
-    super.key,
-    required this.title,
-    required this.value,
-  });
+  const SummaryCard({super.key, required this.title, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -183,9 +213,7 @@ class SummaryCard extends StatelessWidget {
   }
 }
 
-// -------------------------------------------------------------
-// LOAN CARD (Detailed Loan Information)
-// -------------------------------------------------------------
+// Loan card widget
 class LoanCard extends StatelessWidget {
   final String bankName;
   final String amount;
@@ -222,12 +250,13 @@ class LoanCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Section
+          // Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: const Color(0xFF2C3E3E),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+              borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(10)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -251,7 +280,7 @@ class LoanCard extends StatelessWidget {
             ),
           ),
 
-          // Body Section
+          // Body
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: Column(
@@ -260,13 +289,13 @@ class LoanCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 _buildInfoRow("Duration", duration, "Interest Rate", interest),
                 const SizedBox(height: 8),
-                _buildInfoRow("Payment History", paymentHistory, "Any Penalty", penalty),
+                _buildInfoRow("Payment History", paymentHistory, "Penalty", penalty),
               ],
             ),
           ),
         ],
       ),
-    );
+      );
   }
 
   Widget _buildInfoRow(String label1, String value1, String label2, String value2) {
