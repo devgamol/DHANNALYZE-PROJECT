@@ -13,13 +13,27 @@ class CustomerDashboardScreen extends StatefulWidget {
 }
 
 class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
-  late Future<CustomerProfile> _customerFuture;
   final CustomerService _customerService = CustomerService();
+  late Future<Map<String, dynamic>> _dashboardData;
 
   @override
   void initState() {
     super.initState();
-    _customerFuture = _customerService.getProfile();
+    _dashboardData = _fetchDashboardData();
+  }
+
+  Future<Map<String, dynamic>> _fetchDashboardData() async {
+    final profile = await _customerService.getProfile();
+    final accountsCount = await _customerService.getAccountsCount();
+    final loansCount = await _customerService.getLoansCount();
+    final creditScore = await _customerService.getCreditScore();
+
+    return {
+      'profile': profile,
+      'accountsCount': accountsCount,
+      'loansCount': loansCount,
+      'creditScore': creditScore,
+    };
   }
 
   @override
@@ -31,13 +45,12 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
         bottom: false,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: FutureBuilder<CustomerProfile>(
-            future: _customerFuture,
+          child: FutureBuilder<Map<String, dynamic>>(
+            future: _dashboardData,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
-                  child:
-                  CircularProgressIndicator(color: AppColors.accent),
+                  child: CircularProgressIndicator(color: AppColors.accent),
                 );
               } else if (snapshot.hasError) {
                 return Center(
@@ -55,13 +68,16 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                 );
               }
 
-              final customer = snapshot.data!;
+              final data = snapshot.data!;
+              final customer = data['profile'] as CustomerProfile;
+              final accountsCount = data['accountsCount'];
+              final loansCount = data['loansCount'];
+              final creditScore = data['creditScore'];
 
               return SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title
                     const Center(
                       child: Text(
                         "Dashboard",
@@ -74,7 +90,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Top bar
+                    // Header row
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -100,7 +116,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                     ),
                     const SizedBox(height: 25),
 
-                    // Customer info card
+                    // Profile card
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
@@ -124,8 +140,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                           InfoText(label: "Aadhaar", value: customer.aadhaar),
                           InfoText(
                             label: "2FA Enabled",
-                            value:
-                            customer.twoFAEnabled ? "Yes" : "No",
+                            value: customer.twoFAEnabled ? "Yes" : "No",
                             valueColor: customer.twoFAEnabled
                                 ? AppColors.success
                                 : AppColors.warning,
@@ -136,26 +151,32 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
 
                     const SizedBox(height: 25),
 
-                    // Dashboard cards (static placeholders)
-                    const DashboardCard(
-                      icon: Icons.link,
-                      title: "Linked Services",
-                      value: "Active",
-                      valueColor: AppColors.success,
-                    ),
-                    const SizedBox(height: 12),
-                    const DashboardCard(
+                    // Dynamic Dashboard Cards
+                    DashboardCard(
                       icon: Icons.account_balance,
                       title: "Accounts",
-                      value: "2 Active Accounts",
+                      value: "$accountsCount Active",
                       valueColor: AppColors.success,
                     ),
                     const SizedBox(height: 12),
-                    const DashboardCard(
-                      icon: Icons.trending_up,
+                    DashboardCard(
+                      icon: Icons.handshake,
+                      title: "Loan Accounts",
+                      value: "$loansCount Active",
+                      valueColor: loansCount > 0
+                          ? AppColors.warning
+                          : AppColors.success,
+                    ),
+                    const SizedBox(height: 12),
+                    DashboardCard(
+                      icon: Icons.credit_score,
                       title: "Credit Score",
-                      value: "768 (Good)",
-                      valueColor: AppColors.success,
+                      value: "$creditScore",
+                      valueColor: creditScore >= 750
+                          ? AppColors.success
+                          : creditScore >= 650
+                          ? AppColors.warning
+                          : AppColors.error,
                     ),
                     const SizedBox(height: 25),
 

@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 import '../widgets/navigation_bar.dart';
 import '../constants/app_colors.dart';
-
-// ✅ make sure these file names exactly match your folder names in `lib/screens/`
 import 'customer_login_screen.dart';
 import 'change_email_screen.dart';
 import 'manage_fingerprint_screen.dart';
-
 import '../models/customer_profile.dart';
 import '../services/customer_service.dart';
-
 
 class CustomerProfileScreen extends StatefulWidget {
   const CustomerProfileScreen({super.key});
@@ -19,18 +15,32 @@ class CustomerProfileScreen extends StatefulWidget {
 }
 
 class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
-  Future<CustomerProfile>? _customerFuture;
   final CustomerService _customerService = CustomerService();
+  late Future<Map<String, dynamic>> _combinedFuture;
 
   @override
   void initState() {
     super.initState();
-    _customerFuture = _customerService.getProfile();
+    _combinedFuture = _loadAllData();
+  }
+
+  Future<Map<String, dynamic>> _loadAllData() async {
+    final profile = await _customerService.getProfile();
+    final accountsCount = await _customerService.getAccountsCount();
+    final loansCount = await _customerService.getLoansCount();
+
+    return {
+      'profile': profile,
+      'accountsCount': accountsCount,
+      'loansCount': loansCount,
+    };
   }
 
   void _logout(BuildContext context) async {
     await _customerService.logout();
     if (!mounted) return;
+
+    // Clear navigation history and data
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const CustomerLoginScreen()),
@@ -45,12 +55,13 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
-          child: FutureBuilder<CustomerProfile>(
-            future: _customerFuture,
+          child: FutureBuilder<Map<String, dynamic>>(
+            future: _combinedFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
-                    child: CircularProgressIndicator(color: AppColors.accent));
+                  child: CircularProgressIndicator(color: AppColors.accent),
+                );
               } else if (snapshot.hasError) {
                 return Center(
                   child: Text(
@@ -67,13 +78,14 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                 );
               }
 
-              final customer = snapshot.data!;
+              final profile = snapshot.data!['profile'] as CustomerProfile;
+              final accountsCount = snapshot.data!['accountsCount'] as int;
+              final loansCount = snapshot.data!['loansCount'] as int;
 
               return Column(
                 children: [
                   const SizedBox(height: 10),
 
-                  // Page Title
                   const Center(
                     child: Text(
                       'Profile',
@@ -84,10 +96,8 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 16),
 
-                  // Logo + Timestamp
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -113,59 +123,50 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 24),
 
-                  // User Info Card — dynamic data here
-                  Center(
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: AppColors.card,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.4),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Email: ${customer.email}",
-                            style: const TextStyle(
-                                color: AppColors.textPrimary, fontSize: 16),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            "2FA Enabled: ${customer.twoFAEnabled ? "Yes" : "No"}",
-                            style: const TextStyle(
-                                color: AppColors.textSecondary, fontSize: 16),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            "Linked Accounts: 3",
-                            style: TextStyle(
-                                color: AppColors.textSecondary, fontSize: 16),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            "Primary Bank Account: State Bank of India",
-                            style: TextStyle(
-                                color: AppColors.textSecondary, fontSize: 16),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            "Active Loan Accounts: 2",
-                            style: TextStyle(
-                                color: AppColors.textSecondary, fontSize: 16),
-                          ),
-                        ],
-                      ),
+                  // Dynamic User Info Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppColors.card,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.4),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Email: ${profile.email}",
+                          style: const TextStyle(
+                              color: AppColors.textPrimary, fontSize: 16),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "2FA Enabled: ${profile.twoFAEnabled ? "Yes" : "No"}",
+                          style: const TextStyle(
+                              color: AppColors.textSecondary, fontSize: 16),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Linked Accounts: $accountsCount",
+                          style: const TextStyle(
+                              color: AppColors.textSecondary, fontSize: 16),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Active Loan Accounts: $loansCount",
+                          style: const TextStyle(
+                              color: AppColors.textSecondary, fontSize: 16),
+                        ),
+                      ],
                     ),
                   ),
 
@@ -228,21 +229,21 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                   const Spacer(),
 
                   // Logout Button
-                  Center(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 60, vertical: 16),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      onPressed: () => _logout(context),
-                      child: const Text(
-                        'Logout',
-                        style:
-                        TextStyle(color: Colors.white, fontSize: 17),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 60,
+                        vertical: 16,
                       ),
+                    ),
+                    onPressed: () => _logout(context),
+                    child: const Text(
+                      'Logout',
+                      style: TextStyle(color: Colors.white, fontSize: 17),
                     ),
                   ),
                   const SizedBox(height: 10),
