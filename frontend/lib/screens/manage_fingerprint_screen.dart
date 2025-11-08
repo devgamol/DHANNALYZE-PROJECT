@@ -1,30 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:local_auth/local_auth.dart';
+import '../services/customer_service.dart';
 import 'customer_profile_screen.dart';
 
 class ManageFingerprintScreen extends StatefulWidget {
   const ManageFingerprintScreen({super.key});
 
   @override
-  State<ManageFingerprintScreen> createState() =>
-      _ManageFingerprintScreenState();
+  State<ManageFingerprintScreen> createState() => _ManageFingerprintScreenState();
 }
 
 class _ManageFingerprintScreenState extends State<ManageFingerprintScreen> {
-  final LocalAuthentication auth = LocalAuthentication();
-  bool _fingerprintEnabled = false;
-  bool _isAuthenticating = false;
-  String _statusMessage = "Fingerprint login is disabled.";
+  final LocalAuthentication _auth = LocalAuthentication();
+  final CustomerService _customerService = CustomerService();
 
-  Future<void> _authenticateFingerprint() async {
+  bool _isAuthenticating = false;
+  bool _fingerprintEnabled = false;
+  String _status = "Fingerprint login is disabled.";
+
+  // Perform fingerprint authentication
+  Future<void> _authenticate() async {
     try {
       setState(() {
         _isAuthenticating = true;
-        _statusMessage = "Authenticating...";
+        _status = "Authenticating...";
       });
 
-      final bool didAuthenticate = await auth.authenticate(
+      bool didAuthenticate = await _auth.authenticate(
         localizedReason: 'Authenticate to enable fingerprint login',
         options: const AuthenticationOptions(
           biometricOnly: true,
@@ -32,40 +35,57 @@ class _ManageFingerprintScreenState extends State<ManageFingerprintScreen> {
         ),
       );
 
-      setState(() {
-        _isAuthenticating = false;
-        if (didAuthenticate) {
+      if (didAuthenticate) {
+        setState(() {
           _fingerprintEnabled = true;
-          _statusMessage = "✅ Fingerprint login is enabled.";
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Fingerprint verified successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else {
-          _fingerprintEnabled = false;
-          _statusMessage = "❌ Authentication failed or cancelled.";
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Authentication failed!'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-        }
-      });
+          _status = "✅ Fingerprint login enabled.";
+        });
+
+        // Update status on backend
+        await _updateFingerprintStatus(true);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Fingerprint verified successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        setState(() {
+          _status = "❌ Authentication failed or cancelled.";
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Authentication failed.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     } catch (e) {
       setState(() {
-        _isAuthenticating = false;
-        _statusMessage =
-        "⚠️ Biometric authentication not available on this device.";
+        _status = "⚠️ Biometric authentication not available on this device.";
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Fingerprint authentication not available.'),
+        SnackBar(
+          content: Text('Fingerprint error: $e'),
           backgroundColor: Colors.orange,
         ),
       );
+    } finally {
+      setState(() => _isAuthenticating = false);
+    }
+  }
+
+  // Update fingerprint preference to backend
+  Future<void> _updateFingerprintStatus(bool enable) async {
+    try {
+      final token = await _customerService.getProfile(); // get token from storage
+      final response = await _customerService.toggleFingerprint(enable);
+      if (response) {
+        debugPrint("Fingerprint status updated successfully!");
+      }
+    } catch (e) {
+      debugPrint("Error updating fingerprint status: $e");
     }
   }
 
@@ -93,14 +113,10 @@ class _ManageFingerprintScreenState extends State<ManageFingerprintScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
           child: Column(
             children: [
-              // 🖼️ Logo + Title
+              // Header
               Column(
                 children: [
-                  Image.asset(
-                    'assets/images/logo.png',
-                    height: 90,
-                    width: 90,
-                  ),
+                  Image.asset('assets/images/logo.png', height: 90, width: 90),
                   const SizedBox(height: 12),
                   Text(
                     'Dhannalyze',
@@ -123,14 +139,12 @@ class _ManageFingerprintScreenState extends State<ManageFingerprintScreen> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 50),
 
-              // 🔐 Fingerprint Authentication Card
+              // Fingerprint Card
               Container(
                 width: double.infinity,
-                padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
                 decoration: BoxDecoration(
                   color: cardColor,
                   borderRadius: BorderRadius.circular(16),
@@ -144,16 +158,12 @@ class _ManageFingerprintScreenState extends State<ManageFingerprintScreen> {
                 ),
                 child: Column(
                   children: [
-                    const Icon(Icons.fingerprint,
-                        color: accentColor, size: 60),
+                    const Icon(Icons.fingerprint, color: accentColor, size: 60),
                     const SizedBox(height: 16),
                     Text(
-                      _statusMessage,
+                      _status,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                      ),
+                      style: const TextStyle(color: textColor, fontSize: 16),
                     ),
                     const SizedBox(height: 25),
                     _isAuthenticating
@@ -167,11 +177,10 @@ class _ManageFingerprintScreenState extends State<ManageFingerprintScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 40, vertical: 14),
                       ),
-                      onPressed: _authenticateFingerprint,
+                      onPressed: _authenticate,
                       child: const Text(
                         "Scan Fingerprint",
-                        style: TextStyle(
-                            color: Colors.white, fontSize: 18),
+                        style: TextStyle(color: Colors.white, fontSize: 18),
                       ),
                     ),
                   ],
@@ -180,7 +189,7 @@ class _ManageFingerprintScreenState extends State<ManageFingerprintScreen> {
 
               const SizedBox(height: 40),
 
-              // 🔘 Save Settings Button
+              // Save button
               SizedBox(
                 width: double.infinity,
                 height: 55,
@@ -192,25 +201,10 @@ class _ManageFingerprintScreenState extends State<ManageFingerprintScreen> {
                     ),
                   ),
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _fingerprintEnabled
-                              ? '✅ Fingerprint login enabled successfully!'
-                              : '❌ Fingerprint login remains disabled.',
-                        ),
-                        backgroundColor: _fingerprintEnabled
-                            ? Colors.green
-                            : Colors.redAccent,
-                      ),
-                    );
-
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                        const CustomerProfileScreen(),
-                      ),
+                          builder: (context) => const CustomerProfileScreen()),
                     );
                   },
                   child: const Text(

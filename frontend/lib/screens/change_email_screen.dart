@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'customer_profile_screen.dart'; // ✅ For redirecting back
+import '../services/email_service.dart';
+import 'customer_profile_screen.dart';
 
 class ChangeEmailScreen extends StatefulWidget {
   const ChangeEmailScreen({super.key});
@@ -13,6 +14,7 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
+  final ChangeEmailService _changeEmailService = ChangeEmailService();
 
   bool _isOtpSent = false;
   bool _isLoading = false;
@@ -109,47 +111,51 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
                 const SizedBox(height: 20),
 
                 // 🔘 Send OTP Button
-                !_isOtpSent
-                    ? SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accentColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                if (!_isOtpSent)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accentColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () async {
+                        if (_formKey.currentState!.validate()) {
+                          setState(() => _isLoading = true);
+                          try {
+                            await _changeEmailService
+                                .sendOtpToNewEmail(_emailController.text.trim());
+                            setState(() {
+                              _isLoading = false;
+                              _isOtpSent = true;
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('OTP sent to your new email!')),
+                            );
+                          } catch (e) {
+                            setState(() => _isLoading = false);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error: $e'),
+                                backgroundColor: Colors.redAccent,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                        'Send OTP',
+                        style:
+                        TextStyle(color: Colors.white, fontSize: 18),
                       ),
                     ),
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        setState(() => _isLoading = true);
-
-                        // Simulate sending OTP
-                        Future.delayed(const Duration(seconds: 2), () {
-                          setState(() {
-                            _isLoading = false;
-                            _isOtpSent = true;
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content:
-                              Text('OTP sent to your new email!'),
-                            ),
-                          );
-                        });
-                      }
-                    },
-                    child: _isLoading
-                        ? const CircularProgressIndicator(
-                        color: Colors.white)
-                        : const Text(
-                      'Send OTP',
-                      style: TextStyle(
-                          color: Colors.white, fontSize: 18),
-                    ),
                   ),
-                )
-                    : const SizedBox(),
 
                 // 🔢 OTP Input (after Send OTP)
                 if (_isOtpSent) ...[
@@ -176,8 +182,8 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
                         if (value == null || value.isEmpty) {
                           return 'Please enter the OTP';
                         }
-                        if (value.length != 5) {
-                          return 'OTP must be 5 digits';
+                        if (value.length != 6) {
+                          return 'OTP must be 6 digits';
                         }
                         return null;
                       },
@@ -196,14 +202,17 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      onPressed: () {
+                      onPressed: () async {
                         if (_formKey.currentState!.validate()) {
-                          final enteredOtp = _otpController.text.trim();
-
-                          if (enteredOtp == '12345') {
+                          try {
+                            await _changeEmailService.verifyOtpAndUpdateEmail(
+                              _emailController.text.trim(),
+                              _otpController.text.trim(),
+                            );
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Email successfully updated!'),
+                                content:
+                                Text('Email successfully updated!'),
                                 backgroundColor: Colors.green,
                               ),
                             );
@@ -215,10 +224,10 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
                                 const CustomerProfileScreen(),
                               ),
                             );
-                          } else {
+                          } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Invalid OTP! Please retry.'),
+                              SnackBar(
+                                content: Text('Error: $e'),
                                 backgroundColor: Colors.redAccent,
                               ),
                             );

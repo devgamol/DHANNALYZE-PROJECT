@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
+import '../services/auth_service.dart';
+import '../models/otp_response.dart';
 import 'customer_login_screen.dart';
 
 class CustomerSignupScreen extends StatefulWidget {
@@ -26,9 +28,46 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
     super.dispose();
   }
 
+  Future<void> _handleSignup() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final pan = _panController.text.trim().toUpperCase();
+    final aadhaar = _aadhaarController.text.trim();
+    final email = _emailController.text.trim();
+
+    setState(() => _isLoading = true);
+
+    try {
+      final authService = AuthService();
+      final OtpResponse response = await authService.signup(
+        pan: pan,
+        aadhaar: aadhaar,
+        email: email,
+      );
+
+      setState(() => _isLoading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response.message)),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const CustomerLoginScreen()),
+      );
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // ✅ Same logic as main.dart — keeps icons visible across all devices
     final isDarkMode =
         WidgetsBinding.instance.window.platformBrightness == Brightness.dark;
 
@@ -45,25 +84,22 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Scrollable content section
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     children: [
                       const SizedBox(height: 10),
 
-                      // Logo + App Title
+                      // Logo + Title
                       Column(
                         children: [
-                          Image.asset(
-                            'assets/images/logo.png',
-                            height: 80,
-                            width: 80,
-                          ),
+                          Image.asset('assets/images/logo.png',
+                              height: 80, width: 80),
                           const SizedBox(height: 8),
                           Text(
                             'Dhannalyze',
@@ -111,12 +147,13 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
                               color: AppColors.textPrimary, fontSize: 16),
                           decoration: const InputDecoration(
                             labelText: 'PAN Number',
-                            labelStyle: TextStyle(color: AppColors.textSecondary),
-                            prefixIcon:
-                            Icon(Icons.credit_card, color: AppColors.accent),
+                            labelStyle:
+                            TextStyle(color: AppColors.textSecondary),
+                            prefixIcon: Icon(Icons.credit_card,
+                                color: AppColors.accent),
                             border: InputBorder.none,
-                            contentPadding:
-                            EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 14),
                           ),
                           textCapitalization: TextCapitalization.characters,
                           validator: (value) {
@@ -146,12 +183,13 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
                               color: AppColors.textPrimary, fontSize: 16),
                           decoration: const InputDecoration(
                             labelText: 'Aadhaar Number',
-                            labelStyle: TextStyle(color: AppColors.textSecondary),
-                            prefixIcon:
-                            Icon(Icons.perm_identity, color: AppColors.accent),
+                            labelStyle:
+                            TextStyle(color: AppColors.textSecondary),
+                            prefixIcon: Icon(Icons.perm_identity,
+                                color: AppColors.accent),
                             border: InputBorder.none,
-                            contentPadding:
-                            EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 14),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -180,12 +218,13 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
                               color: AppColors.textPrimary, fontSize: 16),
                           decoration: const InputDecoration(
                             labelText: 'Email ID',
-                            labelStyle: TextStyle(color: AppColors.textSecondary),
-                            prefixIcon:
-                            Icon(Icons.email_outlined, color: AppColors.accent),
+                            labelStyle:
+                            TextStyle(color: AppColors.textSecondary),
+                            prefixIcon: Icon(Icons.email_outlined,
+                                color: AppColors.accent),
                             border: InputBorder.none,
-                            contentPadding:
-                            EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 14),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -204,7 +243,8 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
 
                       // Continue Button
                       _isLoading
-                          ? const CircularProgressIndicator(color: AppColors.accent)
+                          ? const CircularProgressIndicator(
+                          color: AppColors.accent)
                           : SizedBox(
                         width: double.infinity,
                         height: 50,
@@ -215,52 +255,17 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          onPressed: () {
-                            if (_formKey.currentState!.validate()) {
-                              final pan =
-                              _panController.text.trim().toUpperCase();
-                              final aadhaar = _aadhaarController.text.trim();
-                              final email = _emailController.text.trim();
-
-                              final isLinked = pan == 'ABCDE1234F' &&
-                                  aadhaar == '123456789012' &&
-                                  email.isNotEmpty;
-
-                              if (isLinked) {
-                                setState(() => _isLoading = true);
-                                Future.delayed(const Duration(seconds: 2), () {
-                                  setState(() => _isLoading = false);
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                      const CustomerLoginScreen(),
-                                    ),
-                                  );
-                                });
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Invalid or unlinked Email, PAN, or Aadhaar.',
-                                    ),
-                                    backgroundColor: AppColors.error,
-                                  ),
-                                );
-                              }
-                            }
-                          },
+                          onPressed: _handleSignup,
                           child: const Text(
                             'Continue',
-                            style:
-                            TextStyle(color: Colors.white, fontSize: 17),
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 17),
                           ),
                         ),
                       ),
 
                       const SizedBox(height: 18),
 
-                      // Already Registered
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -270,12 +275,11 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
                           ),
                           GestureDetector(
                             onTap: () {
-                              Navigator.push(
+                              Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) =>
-                                  const CustomerLoginScreen(),
-                                ),
+                                    builder: (context) =>
+                                    const CustomerLoginScreen()),
                               );
                             },
                             child: const Text(
@@ -294,7 +298,6 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
               ),
             ),
 
-            // Fixed Footer (like dashboard & loan screens)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
@@ -303,7 +306,7 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
               ),
               child: const Text(
-                " ⚠️ Your email must be linked with your Aadhaar and PAN for registration.",
+                "⚠️ Your email must be linked with your Aadhaar and PAN for registration.",
                 style: TextStyle(
                   color: AppColors.warning,
                   fontSize: 13,

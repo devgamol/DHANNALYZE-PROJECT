@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'customer_signup_screen.dart'; // ✅ for "Sign Up" navigation
-import 'customer_dashboard_screen.dart'; // ✅ for successful login navigation
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:local_auth/local_auth.dart';
+import '../services/auth_service.dart';
+import '../services/customer_service.dart';
+import '../models/auth_response.dart';
+import '../models/otp_response.dart';
+import 'customer_signup_screen.dart';
+import 'customer_dashboard_screen.dart';
 
 class CustomerLoginScreen extends StatefulWidget {
   const CustomerLoginScreen({super.key});
@@ -15,8 +21,114 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
 
+  final _authService = AuthService();
+  final _customerService = CustomerService();
+  final _storage = const FlutterSecureStorage();
+  final LocalAuthentication _localAuth = LocalAuthentication();
+
   bool _isOtpSent = false;
   bool _isLoading = false;
+  bool _biometricPromptShown = false;
+
+  Future<void> _sendOtp() async {
+    if (!_formKey.currentState!.validate()) return;
+    final email = _emailController.text.trim().toLowerCase();
+    setState(() => _isLoading = true);
+
+    try {
+      final OtpResponse response = await _authService.sendLoginOtp(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(response.message)));
+      if (mounted) setState(() => _isOtpSent = true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.redAccent),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _verifyOtp() async {
+    if (!_formKey.currentState!.validate()) return;
+    final email = _emailController.text.trim().toLowerCase();
+    final otp = _otpController.text.trim();
+
+    setState(() => _isLoading = true);
+
+    try {
+      final AuthResponse response =
+      await _authService.verifyLoginOtp(email, otp);
+      await _storage.write(key: 'jwt_token', value: response.token);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(response.message)));
+
+      final profile = await _customerService.getProfile();
+
+      if (profile.twoFAEnabled && !_biometricPromptShown) {
+        _biometricPromptShown = true;
+
+        try {
+          final canCheck = await _localAuth.canCheckBiometrics;
+          final available = await _localAuth.getAvailableBiometrics();
+
+          if (!canCheck || available.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content:
+                Text('Fingerprint not available — skipping fingerprint verification.'),
+                backgroundColor: Colors.orangeAccent,
+              ),
+            );
+          } else {
+            final didAuthenticate = await _localAuth.authenticate(
+              localizedReason: 'Verify your fingerprint to continue',
+              options: const AuthenticationOptions(
+                biometricOnly: true,
+                stickyAuth: true,
+              ),
+            );
+
+            if (!didAuthenticate) {
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Fingerprint verification failed'),
+                  backgroundColor: Colors.redAccent,
+                ),
+              );
+              return;
+            }
+          }
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Fingerprint error: $e'),
+              backgroundColor: Colors.orangeAccent,
+            ),
+          );
+        }
+      }
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const CustomerDashboardScreen()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.redAccent),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,39 +147,28 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
             key: _formKey,
             child: Column(
               children: [
-                // 🖼️ Logo + Title
-                Column(
-                  children: [
-                    Image.asset(
-                      'assets/images/logo.png',
-                      height: 90,
-                      width: 90,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Dhannalyze',
-                      style: GoogleFonts.montserrat(
-                        color: accentColor,
-                        fontSize: 34,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Smart. Secure. Simplified.',
-                      style: GoogleFonts.poppins(
-                        color: secondaryText,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
+                Image.asset('assets/images/logo.png', height: 90, width: 90),
+                const SizedBox(height: 12),
+                Text(
+                  'Dhannalyze',
+                  style: GoogleFonts.montserrat(
+                    color: accentColor,
+                    fontSize: 34,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                  ),
                 ),
-
+                const SizedBox(height: 6),
+                Text(
+                  'Smart. Secure. Simplified.',
+                  style: GoogleFonts.poppins(
+                    color: secondaryText,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
                 const SizedBox(height: 50),
 
-                // 🧾 Email Field
                 Container(
                   decoration: BoxDecoration(
                     color: cardColor,
@@ -96,55 +197,30 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
                     },
                   ),
                 ),
+                const SizedBox(height: 20),
 
-                const SizedBox(height: 15),
-
-                // 🔘 Send OTP Button
-                !_isOtpSent
-                    ? SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accentColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                if (!_isOtpSent)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accentColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: _isLoading ? null : _sendOtp,
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                        'Send OTP',
+                        style:
+                        TextStyle(color: Colors.white, fontSize: 18),
                       ),
                     ),
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        setState(() => _isLoading = true);
-
-                        // Simulate sending OTP
-                        Future.delayed(const Duration(seconds: 2), () {
-                          setState(() {
-                            _isLoading = false;
-                            _isOtpSent = true;
-                          });
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('OTP sent to your email!'),
-                            ),
-                          );
-                        });
-                      }
-                    },
-                    child: _isLoading
-                        ? const CircularProgressIndicator(
-                        color: Colors.white)
-                        : const Text(
-                      'Send OTP',
-                      style: TextStyle(
-                          color: Colors.white, fontSize: 18),
-                    ),
-                  ),
-                )
-                    : const SizedBox(),
-
-                // 🔢 OTP Field (only visible after Send OTP)
-                if (_isOtpSent) ...[
-                  const SizedBox(height: 15),
+                  )
+                else ...[
                   Container(
                     decoration: BoxDecoration(
                       color: cardColor,
@@ -167,16 +243,15 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
                         if (value == null || value.isEmpty) {
                           return 'Please enter the OTP';
                         }
-                        if (value.length != 5) {
-                          return 'OTP must be 5 digits';
+                        if (value.length != 6) {
+                          return 'OTP must be 6 digits';
                         }
                         return null;
                       },
                     ),
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 25),
 
-                  // 🔘 Verify OTP Button
                   SizedBox(
                     width: double.infinity,
                     height: 55,
@@ -187,37 +262,10 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                          final enteredOtp = _otpController.text.trim();
-
-                          if (enteredOtp == '12345') {
-                            // ✅ Dummy OTP success
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('OTP Verified! Logging in...'),
-                              ),
-                            );
-
-                            // Navigate to dashboard
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                const CustomerDashboardScreen(),
-                              ),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Invalid OTP! Please try again.'),
-                                backgroundColor: Colors.redAccent,
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      child: const Text(
+                      onPressed: _isLoading ? null : _verifyOtp,
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
                         'Verify OTP',
                         style:
                         TextStyle(color: Colors.white, fontSize: 18),
@@ -228,7 +276,6 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
 
                 const SizedBox(height: 25),
 
-                // 🔄 No Account? Sign up
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -241,9 +288,8 @@ class _CustomerLoginScreenState extends State<CustomerLoginScreen> {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                            const CustomerSignupScreen(),
-                          ),
+                              builder: (context) =>
+                              const CustomerSignupScreen()),
                         );
                       },
                       child: const Text(
