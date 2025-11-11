@@ -208,9 +208,8 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
   }
 }
 
-// -------------------------------------------------------------
 // REUSABLE WIDGETS
-// -------------------------------------------------------------
+
 class InfoText extends StatelessWidget {
   final String label;
   final String value;

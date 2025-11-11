@@ -15,14 +15,14 @@ exports.createLoan = async (req, res) => {
       status,
     } = req.body;
 
-    // 🔹 Basic input validation
+    //  Basic input validation
     if (!bankName || !amount || !issuedOn || !duration || !interestRate) {
       return res
         .status(400)
         .json({ message: "All required fields must be provided." });
     }
 
-    // 🔹 Create new loan and link to the logged-in user
+    //  Create new loan and link to the logged-in user
     const newLoan = await Loan.create({
       customerId, // Linked to JWT user
       bankName,

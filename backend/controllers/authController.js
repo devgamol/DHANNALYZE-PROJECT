@@ -4,9 +4,8 @@ const nodemailer = require("nodemailer");
 const Customer = require("../models/Customer");
 const OTPVerification = require("../models/OTPVerification");
 
-// ==========================
-// 🔹 EMAIL SENDER (Nodemailer)
-// ==========================
+// EMAIL SENDER (Nodemailer)
+
 async function sendEmail(to, subject, text) {
   try {
     const transporter = nodemailer.createTransport({
@@ -31,9 +30,9 @@ async function sendEmail(to, subject, text) {
   }
 }
 
-// ==========================
-// 🔹 SIGNUP
-// ==========================
+
+// SIGNUP
+
 exports.signup = async (req, res) => {
   try {
     const { pan, aadhaar, email } = req.body;
@@ -63,9 +62,9 @@ exports.signup = async (req, res) => {
   }
 };
 
-// ==========================
-// 🔹 SEND LOGIN OTP
-// ==========================
+
+// SEND LOGIN OTP
+
 exports.sendLoginOtp = async (req, res) => {
   try {
     const { email } = req.body;
@@ -98,9 +97,9 @@ exports.sendLoginOtp = async (req, res) => {
   }
 };
 
-// ==========================
-// 🔹 VERIFY LOGIN OTP & ISSUE JWT
-// ==========================
+
+// VERIFY LOGIN OTP & ISSUE JWT
+
 exports.verifyLoginOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -132,9 +131,9 @@ exports.verifyLoginOtp = async (req, res) => {
   }
 };
 
-// ==========================
-// 🔹 SEND CHANGE EMAIL OTP
-// ==========================
+
+// SEND CHANGE EMAIL OTP
+
 exports.sendChangeEmailOtp = async (req, res) => {
   try {
     const { newEmail } = req.body;
@@ -163,9 +162,9 @@ exports.sendChangeEmailOtp = async (req, res) => {
   }
 };
 
-// ==========================
-// 🔹 VERIFY CHANGE EMAIL OTP
-// ==========================
+
+//  VERIFY CHANGE EMAIL OTP
+
 exports.verifyChangeEmailOtp = async (req, res) => {
   try {
     const userId = req.user?.id;
