@@ -45,7 +45,7 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
             key: _formKey,
             child: Column(
               children: [
-                // 🖼️ Logo + Title
+                // Logo + Title
                 Column(
                   children: [
                     Image.asset(
@@ -78,7 +78,7 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
 
                 const SizedBox(height: 40),
 
-                // 📧 Email Input Field
+                // Email Input Field
                 Container(
                   decoration: BoxDecoration(
                     color: cardColor,
@@ -110,7 +110,7 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
 
                 const SizedBox(height: 20),
 
-                // 🔘 Send OTP Button
+                // Send OTP Button
                 if (!_isOtpSent)
                   SizedBox(
                     width: double.infinity,
@@ -157,7 +157,7 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
                     ),
                   ),
 
-                // 🔢 OTP Input (after Send OTP)
+                // OTP Input (after Send OTP)
                 if (_isOtpSent) ...[
                   const SizedBox(height: 20),
                   Container(
@@ -191,7 +191,7 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
                   ),
                   const SizedBox(height: 30),
 
-                  // ✅ Verify OTP Button
+                  // Verify OTP Button
                   SizedBox(
                     width: double.infinity,
                     height: 55,

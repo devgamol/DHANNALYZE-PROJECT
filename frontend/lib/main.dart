@@ -5,7 +5,7 @@ import 'screens/customer_signup_screen.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ Make the status bar adapt automatically to system theme
+  //  Make the status bar adapt automatically to system theme
   SystemChrome.setSystemUIOverlayStyle(
     SystemUiOverlayStyle(
       statusBarColor: const Color(0xFF11121A), // your dark fintech background
@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Dhannalyze',
-      themeMode: ThemeMode.system, // ✅ automatically adapts to system mode
+      themeMode: ThemeMode.system, // automatically adapts to system mode
       theme: ThemeData(
         brightness: Brightness.light,
         scaffoldBackgroundColor: const Color(0xFFF4F5F9),

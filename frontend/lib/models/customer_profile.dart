@@ -1,4 +1,4 @@
-class CustomerProfile {
+  class CustomerProfile {
   final String id;
   final String pan;
   final String aadhaar;

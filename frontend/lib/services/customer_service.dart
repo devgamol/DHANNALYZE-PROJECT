@@ -4,12 +4,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/customer_profile.dart';
 
 class CustomerService {
-  static const String baseUrl = "http://192.168.29.41:3000/api/users"; // ✅ Update IP
+  static const String baseUrl = "http://192.168.29.41:3000/api/users"; 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  // =========================
   // Fetch Customer Profile
-  // =========================
+
   Future<CustomerProfile> getProfile() async {
     final token = await _storage.read(key: 'jwt_token');
     if (token == null || token.isEmpty) {
@@ -33,9 +32,8 @@ class CustomerService {
     }
   }
 
-  // =========================
-  // Fetch Accounts Count
-  // =========================
+   // Fetch Accounts Count
+ 
   Future<int> getAccountsCount() async {
     final token = await _storage.read(key: 'jwt_token');
     if (token == null || token.isEmpty) {
@@ -56,9 +54,8 @@ class CustomerService {
     }
   }
 
-  // =========================
   // Fetch Loan Count
-  // =========================
+ 
   Future<int> getLoansCount() async {
     final token = await _storage.read(key: 'jwt_token');
     if (token == null || token.isEmpty) {
@@ -79,9 +76,9 @@ class CustomerService {
     }
   }
 
-  // =========================
-  // Fetch Credit Score (via backend API)
-  // =========================
+  
+  // Fetch Credit Score 
+  
   Future<int> getCreditScore() async {
     final token = await _storage.read(key: 'jwt_token');
     if (token == null || token.isEmpty) {
@@ -111,9 +108,8 @@ class CustomerService {
     }
   }
 
-  // =========================
   // Toggle Fingerprint Setting
-  // =========================
+
   Future<bool> toggleFingerprint(bool enable) async {
     final token = await _storage.read(key: 'jwt_token');
     if (token == null) return false;
@@ -131,9 +127,9 @@ class CustomerService {
     return response.statusCode == 200;
   }
 
-  // =========================
+ 
   // Logout (Clear All Data)
-  // =========================
+  
   Future<void> logout() async {
     await _storage.deleteAll();
   }

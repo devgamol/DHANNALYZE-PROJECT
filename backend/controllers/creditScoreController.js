@@ -1,6 +1,6 @@
 const CreditScore = require("../models/CreditScore");
 
-// 🟢 Get credit score for logged-in user
+// Get credit score for logged-in user
 exports.getCreditScoreForLoggedInUser = async (req, res) => {
   try {
     const score = await CreditScore.findOne({ customerId: req.user.id });
@@ -16,7 +16,7 @@ exports.getCreditScoreForLoggedInUser = async (req, res) => {
   }
 };
 
-// 🟠 Create or update credit score for logged-in user (for testing)
+//  Create or update credit score for logged-in user (for testing)
 exports.createCreditScoreForLoggedInUser = async (req, res) => {
   try {
     const { score, grade, history, lastUpdated } = req.body;

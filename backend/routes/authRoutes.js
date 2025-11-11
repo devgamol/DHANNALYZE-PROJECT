@@ -9,17 +9,17 @@ const {
   verifyChangeEmailOtp,
 } = require("../controllers/authController");
 
-// 🧾 SIGNUP (Customer registers with PAN, Aadhaar, Email)
+// SIGNUP (Customer registers with PAN, Aadhaar, Email)
 router.post("/signup", signup);
 
-// ✉️ LOGIN FLOW
+//  LOGIN FLOW
 // Step 1: Send OTP to email
 router.post("/login/send-otp", sendLoginOtp);
 
 // Step 2: Verify OTP and return JWT
 router.post("/login/verify-otp", verifyLoginOtp);
 
-// 🔄 CHANGE EMAIL FLOW (requires auth)
+//  CHANGE EMAIL FLOW (requires auth)
 // Step 1: Send OTP to new email
 router.post("/email/change/send-otp", auth, sendChangeEmailOtp);
 
