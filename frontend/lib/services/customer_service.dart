@@ -4,11 +4,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/customer_profile.dart';
 
 class CustomerService {
-  static const String baseUrl = "http://192.168.29.41:3000/api/users"; 
+  static const String baseUrl = "https://dhannalyze-backend-1.onrender.com/api/users";
+  static const String baseApi = "https://dhannalyze-backend-1.onrender.com/api";
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   // Fetch Customer Profile
-
   Future<CustomerProfile> getProfile() async {
     final token = await _storage.read(key: 'jwt_token');
     if (token == null || token.isEmpty) {
@@ -32,15 +32,14 @@ class CustomerService {
     }
   }
 
-   // Fetch Accounts Count
- 
+  // Fetch Accounts Count
   Future<int> getAccountsCount() async {
     final token = await _storage.read(key: 'jwt_token');
     if (token == null || token.isEmpty) {
       throw Exception("No token found. Please log in again.");
     }
 
-    final url = Uri.parse("http://192.168.29.41:3000/api/accounts");
+    final url = Uri.parse("$baseApi/accounts");
     final response = await http.get(
       url,
       headers: {'Authorization': 'Bearer $token'},
@@ -55,14 +54,13 @@ class CustomerService {
   }
 
   // Fetch Loan Count
- 
   Future<int> getLoansCount() async {
     final token = await _storage.read(key: 'jwt_token');
     if (token == null || token.isEmpty) {
       throw Exception("No token found. Please log in again.");
     }
 
-    final url = Uri.parse("http://192.168.29.41:3000/api/loans");
+    final url = Uri.parse("$baseApi/loans");
     final response = await http.get(
       url,
       headers: {'Authorization': 'Bearer $token'},
@@ -76,16 +74,14 @@ class CustomerService {
     }
   }
 
-  
-  // Fetch Credit Score 
-  
+  // Fetch Credit Score
   Future<int> getCreditScore() async {
     final token = await _storage.read(key: 'jwt_token');
     if (token == null || token.isEmpty) {
       throw Exception("No token found. Please log in again.");
     }
 
-    final url = Uri.parse("http://192.168.29.41:3000/api/creditscore");
+    final url = Uri.parse("$baseApi/creditscore");
     final response = await http.get(
       url,
       headers: {'Authorization': 'Bearer $token'},
@@ -94,14 +90,12 @@ class CustomerService {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
-      // If backend sends score field, use it, else fallback to 0
       if (data is Map && data.containsKey('score')) {
         return (data['score'] ?? 0).toInt();
       } else {
         return 0;
       }
     } else if (response.statusCode == 404) {
-      // No score available for user
       return 0;
     } else {
       throw Exception("Failed to fetch credit score: ${response.statusCode}");
@@ -109,7 +103,6 @@ class CustomerService {
   }
 
   // Toggle Fingerprint Setting
-
   Future<bool> toggleFingerprint(bool enable) async {
     final token = await _storage.read(key: 'jwt_token');
     if (token == null) return false;
@@ -127,9 +120,7 @@ class CustomerService {
     return response.statusCode == 200;
   }
 
- 
   // Logout (Clear All Data)
-  
   Future<void> logout() async {
     await _storage.deleteAll();
   }

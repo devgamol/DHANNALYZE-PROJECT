@@ -4,7 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/loan.dart';
 
 class LoanService {
-  static const String baseUrl = "http://192.168.29.41:3000/api/loans";
+  static const String baseUrl = "https://dhannalyze-backend-1.onrender.com/api/loans";
   final _storage = const FlutterSecureStorage();
 
   // Fetch all loans for logged-in customer
