@@ -3,36 +3,39 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const Customer = require("../models/Customer");
 const OTPVerification = require("../models/OTPVerification");
+const fetch = global.fetch || ((...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args)));
 
-// EMAIL SENDER (Nodemailer)
 
+// EMAIL SENDER (Resend in production, Gmail locally)
 async function sendEmail(to, subject, text) {
   try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER, // Gmail address
-        pass: process.env.EMAIL_PASS, // App password (not your Gmail password)
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": process.env.BREVO_API_KEY,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        sender: { name: "Dhannalyze", email: "amolsahu31010@gmail.com" },
+        to: [{ email: to }],
+        subject,
+        textContent: text,
+      }),
     });
 
-    const mailOptions = {
-      from: `"Dhannalyze" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      text,
-    };
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(err);
+    }
 
-    await transporter.sendMail(mailOptions);
-    console.log(`✅ OTP email sent to ${to}`);
-  } catch (error) {
-    console.error("❌ Error sending email:", error);
+    console.log(`Email sent to ${to} via Brevo`);
+  } catch (err) {
+    console.error("Error sending email:", err.message);
   }
 }
 
 
 // SIGNUP
-
 exports.signup = async (req, res) => {
   try {
     const { pan, aadhaar, email } = req.body;
@@ -62,9 +65,7 @@ exports.signup = async (req, res) => {
   }
 };
 
-
 // SEND LOGIN OTP
-
 exports.sendLoginOtp = async (req, res) => {
   try {
     const { email } = req.body;
@@ -73,8 +74,8 @@ exports.sendLoginOtp = async (req, res) => {
     const customer = await Customer.findOne({ email });
     if (!customer) return res.status(404).json({ message: "Customer not found" });
 
-    const otp = String(Math.floor(100000 + Math.random() * 900000)); // 6-digit OTP
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 min validity
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     await OTPVerification.create({
       email,
@@ -83,7 +84,6 @@ exports.sendLoginOtp = async (req, res) => {
       verified: false,
     });
 
-    // Send OTP via email
     await sendEmail(
       email,
       "Your Dhannalyze Login OTP",
@@ -97,9 +97,7 @@ exports.sendLoginOtp = async (req, res) => {
   }
 };
 
-
 // VERIFY LOGIN OTP & ISSUE JWT
-
 exports.verifyLoginOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -111,14 +109,12 @@ exports.verifyLoginOtp = async (req, res) => {
     if (record.expiresAt < new Date()) return res.status(400).json({ message: "OTP has expired" });
     if (record.otp !== otp) return res.status(400).json({ message: "Invalid OTP" });
 
-    // Mark OTP as used
     record.verified = true;
     await record.save();
 
     const customer = await Customer.findOne({ email });
     if (!customer) return res.status(404).json({ message: "Customer not found" });
 
-    // Generate JWT token (valid for 15 days)
     const token = jwt.sign({ id: customer._id }, process.env.JWT_SECRET, { expiresIn: "15d" });
 
     res.json({
@@ -131,9 +127,7 @@ exports.verifyLoginOtp = async (req, res) => {
   }
 };
 
-
 // SEND CHANGE EMAIL OTP
-
 exports.sendChangeEmailOtp = async (req, res) => {
   try {
     const { newEmail } = req.body;
@@ -162,9 +156,7 @@ exports.sendChangeEmailOtp = async (req, res) => {
   }
 };
 
-
-//  VERIFY CHANGE EMAIL OTP
-
+// VERIFY CHANGE EMAIL OTP
 exports.verifyChangeEmailOtp = async (req, res) => {
   try {
     const userId = req.user?.id;
