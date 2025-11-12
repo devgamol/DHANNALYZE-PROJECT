@@ -4,7 +4,7 @@ import '../models/auth_response.dart';
 import '../models/otp_response.dart';
 
 class AuthService {
-  static const String baseUrl = "http://192.168.29.41:3000/api/auth";
+  static const String baseUrl = "https://dhannalyze-backend-1.onrender.com/api/auth";
 
   // SIGNUP API
   

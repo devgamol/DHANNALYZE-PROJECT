@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ChangeEmailService {
-  static const String baseUrl = "http://192.168.29.41:3000/api/auth";
+  static const String baseUrl = "https://dhannalyze-backend-1.onrender.com/api/auth";
   final _storage = const FlutterSecureStorage();
 
   // Step 1: Send OTP to new email

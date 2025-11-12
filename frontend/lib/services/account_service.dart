@@ -4,7 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/account.dart';
 
 class AccountService {
-  static const String baseUrl = "http://192.168.29.41:3000/api/accounts";
+  static const String baseUrl = "https://dhannalyze-backend-1.onrender.com/api/accounts";
   final _storage = const FlutterSecureStorage();
 
   // Fetch all accounts for logged-in user
