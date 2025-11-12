@@ -6,7 +6,7 @@ const OTPVerification = require("../models/OTPVerification");
 const fetch = global.fetch || ((...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args)));
 
 
-// EMAIL SENDER (Resend in production, Gmail locally)
+// EMAIL SENDER (Brevo in production, Gmail locally)
 async function sendEmail(to, subject, text) {
   try {
     const response = await fetch("https://api.brevo.com/v3/smtp/email", {
