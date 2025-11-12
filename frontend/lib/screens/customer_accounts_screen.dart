@@ -124,9 +124,8 @@ class _CustomerAccountsScreenState extends State<CustomerAccountsScreen> {
   }
 }
 
-// -------------------------------------------------------------
 // COMPONENT: Individual Bank Account Card
-// -------------------------------------------------------------
+
 class BankAccountCard extends StatelessWidget {
   final String bankName;
   final String status;

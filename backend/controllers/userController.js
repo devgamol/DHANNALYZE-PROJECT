@@ -1,6 +1,6 @@
 const Customer = require("../models/Customer");
 
-// 🔹 Get all registered customers (for internal/admin use, or testing)
+//  Get all registered customers (for internal/admin use, or testing)
 async function getAllCustomers(req, res) {
   try {
     // Fetch all customers, exclude sensitive fields if needed
@@ -12,7 +12,7 @@ async function getAllCustomers(req, res) {
   }
 }
 
-// 🔹 Get profile of logged-in customer (for app)
+//  Get profile of logged-in customer (for app)
 async function getCustomerProfile(req, res) {
   try {
     const customerId = req.user.id; // comes from JWT in authMiddleware

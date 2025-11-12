@@ -6,9 +6,8 @@ import '../models/otp_response.dart';
 class AuthService {
   static const String baseUrl = "http://192.168.29.41:3000/api/auth";
 
-  // ===============================
   // SIGNUP API
-  // ===============================
+  
   Future<OtpResponse> signup({
     required String pan,
     required String aadhaar,
@@ -37,9 +36,8 @@ class AuthService {
     }
   }
 
-  // ===============================
   // SEND OTP API (Login)
-  // ===============================
+  
   Future<OtpResponse> sendLoginOtp(String email) async {
     final url = Uri.parse('$baseUrl/login/send-otp');
     try {
@@ -60,9 +58,8 @@ class AuthService {
     }
   }
 
-  // ===============================
   // VERIFY OTP API (Login)
-  // ===============================
+
   Future<AuthResponse> verifyLoginOtp(String email, String otp) async {
     final url = Uri.parse('$baseUrl/login/verify-otp');
     try {
