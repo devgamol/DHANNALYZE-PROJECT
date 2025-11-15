@@ -99,7 +99,7 @@ docker build -t dhannalyze-backend .
 docker run -d -p 3000:3000 \
 -e PORT=3000 \
 -e MONGO_URI=your_mongodb_atlas_connection_string \
--e BREVO_API_KEY=your_brevo_smtp_or_api_key \
+-e BREVO_API_KEY=your_brevo_api_key \
 --name dhannalyze-container \
 dhannalyze-backend
 
