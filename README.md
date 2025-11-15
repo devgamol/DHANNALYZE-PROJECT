@@ -3,9 +3,7 @@
 ## Introduction
 
 Dhannalyze is a secure and intuitive mobile application that helps users view all their loan-related information in one place — without visiting multiple bank apps or branches.
-It provides a single dashboard for insights like loan status, account details, and credit score trends.
-
-Built with a focus on simplicity, transparency, and user convenience, Dhannalyze enables general users to instantly check their financial insights using a smooth OTP-based login experience.
+It provides a single dashboard for insights like loan status, account details, and credit score trends.Built with a focus on simplicity, transparency, and user convenience, Dhannalyze enables general users to instantly check their financial insights using a smooth OTP-based login experience.
 
 ________________________________________________________________________________________________________
 
